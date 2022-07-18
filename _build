@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+# TODO accept --debug (default) or --release flags
+
+cargo rustc -- -C link-args="-e __start -static -nostartfiles"
+# cargo rustc --release -- -C link-args="-e __start -static -nostartfiles"

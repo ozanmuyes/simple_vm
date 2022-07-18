@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+./_build
+
+# FIXME use variable instead hardcoded name for the executable
+./target/debug/simple_vm_rust
