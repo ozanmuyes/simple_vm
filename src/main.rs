@@ -1,67 +1,47 @@
-#![no_std]
-#![no_main]
+mod opcodes;
+mod vm;
 
-use core::arch::asm;
-use core::panic::PanicInfo;
+use vm::{TickResult, VM};
 
-// This function is called on panic.
-#[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
-    loop {}
-}
+fn main() -> Result<(), i32> {
+    let bytecode = &[
+        // #region section_header
+        0x2, // .text section length (in bytes)
+        //
+        // #endregion section_header
 
-#[no_mangle]
-pub extern "C" fn _start() -> ! {
-    match my_main(/* TODO MAYBE params */) {
-        Ok(_) => syscall_exit(0),
-        Err(exit_code) => syscall_exit(exit_code), // FIXME make use of the `error` to find out exit code (instead of hardcoded `1`)
+        // #region .text section
+        opcodes::NOOP,
+        opcodes::HALT,
+        //
+        // #endregion .text section
+
+        // #region .data
+        42,
+        // #endregion .data
+    ];
+
+    // host application should exit by 0 code
+    // let bytecode = &[OP_HALT, 1]; // host application should exit by 1 code
+    // let bytecode = &[OP_HALT, 42]; // host application should exit by 1 code
+    let mut isolate: VM<'static> = VM::new(bytecode);
+
+    // match isolate.run() {
+    //     Ok(_) => return Ok(()),
+    //     Err(error) => return Err(error),
+    // }
+
+    // OR
+
+    loop {
+        // TODO console.log(vm.get_state())
+        match isolate.tick() {
+            TickResult::CanContinue => continue,
+            TickResult::Halted => return Ok(()),
+            TickResult::Error(error) => return Err(error),
+        }
     }
 
-    loop {}
-}
-
-// TODO MAYBE params, return type
-fn my_main() -> Result<(), i32> {
-    print("Hello world!");
-
-    // ...
-
-    Ok(())
-    // Err(42)
-}
-
-#[inline(always)]
-fn print(message: &str) {
-    syscall_write(1, message);
-}
-
-// TODO TR aşağıdaki syscall'ları ayrı modüllere çıkar (3 modül = 3 OS)
-
-// #[cfg(target_os = "macos")]
-#[inline(never)]
-fn syscall_write(fd: i32, buf: &str) {
-    let buf_ptr = buf.as_ptr();
-    let buf_len = buf.len();
-
-    unsafe {
-        asm!(
-            "mov rax, 0x2000004",   // syscall write = 0x2000004 on mac
-            "syscall",
-            in("rdi") fd,
-            in("rsi") buf_ptr,      // address of string to output
-            in("rdx") buf_len,      // number of bytes
-            // out("rax") _, lateout("rdi") _, lateout("rsi") _, lateout("rdx") _
-        )
-    }
-}
-
-#[inline(never)]
-fn syscall_exit(code: i32) {
-    unsafe {
-        asm!(
-            "mov rax, 0x2000001",   // syscall exit = 0x2000001 on mac
-            "syscall",
-            in("rdi") code,
-        )
-    }
+    // OR JUST (notice return result)
+    // isolate.run()
 }

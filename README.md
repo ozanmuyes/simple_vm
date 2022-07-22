@@ -8,3 +8,7 @@
 
 * ABI?
 * calling convention
+
+## References
+
+* https://docs.rust-embedded.org/embedonomicon/smallest-no-std.html
