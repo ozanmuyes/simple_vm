@@ -1,0 +1,45 @@
+// use std::prelude::*; // println, etc.
+
+use std::Date;
+use std::Duration;
+use std::timer::Timer;
+
+// # RESTRICTED GLOBAL
+// No codes allowed here, except for;
+// `use`, `mod`, `const`,
+// `fn` (but `pub` is forbidden)
+
+// FIXME move to somewhere else; #[allow(dead_code)]
+mod my_module {
+  // int = 1 byte
+  fn module_private_fn(a: int, b: int) -> int {
+    a + b
+  }
+
+  pub fn sleep_ms(ms: int) {
+
+    println(`Sleeping for ${ms}ms...`);
+
+    await Timer::set(Duration::from_ms(ms));
+    // OR
+    // Timer::set(Duration::from_ms(ms)).await;
+    // OR
+    // Timer::set(Duration::from_ms(ms)).await();
+
+    print("I woke up!\n");
+  }
+}
+
+/**
+ * All functions are implicitly async;
+ * no need to write `async`. To be
+ * clear "async" is not a keyword.
+ */
+fn main() {
+  let epoch = Date::now();
+
+  await my_module.sleep_ms(80);
+
+  print(`Took ${Date::now() - epoch}ms.`);
+  println('\nFIN');
+}

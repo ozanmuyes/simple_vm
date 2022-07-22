@@ -30,7 +30,8 @@ impl std::fmt::Debug for VM {
 }
 
 pub enum TickResult {
-    CanContinue,
+    Continue,
+    Paused, // All
     Halted,
     Error(i32),
 }
@@ -65,7 +66,7 @@ impl VM {
             println!("{:?}", &self);
 
             match self.tick() {
-                TickResult::CanContinue => continue,
+                TickResult::Continue => continue,
                 TickResult::Halted => return Ok(()),
                 TickResult::Error(error_code) => return Err(error_code),
             }
@@ -86,48 +87,63 @@ impl VM {
 
         // FIXME for match to enforce all available options have `opcodes` as (u8) enum
         let result = match opcode {
-            opcodes::NOOP => TickResult::CanContinue,
+            opcodes::NOOP => TickResult::Continue,
             opcodes::HALT => TickResult::Halted,
+            opcodes::YIELD => {
+                // TODO spawn (or better yet take from pool) another isolate (with same sections - MAYBE share them read only?) tokio???
+
+                yield_queue.push(self.ip)
+                if yield_queue.length == 0 {
+                    // wait for this "await" resolves
+                } else {
+                    //      TR bu sırada await'te bekleyen kodlar için bir mesaj gelirse (kqueue, epoll, etc.) onlar bir kuyruğa sokulacak.
+                    // TODO burada `yield_queue`dakileri sırayla tara ve gelen mesaj(lar)ı bekleyenleri çalıştır
+                    // TODO load whole state (regs and such) from `yield_queue`
+
+                    // FIXME eğer bekleyenlere mesaj gelmemişse o zaman ne yapacağız???
+                    TickResult::Paused
+                }
+            }
             // #region MOVs
             opcodes::MOV0 => {
                 self.ip += 1;
                 self.r[0] = self.text_section[self.ip];
-                TickResult::CanContinue
+                TickResult::Continue
             }
             opcodes::MOV1 => {
                 self.ip += 1;
                 self.r[1] = self.text_section[self.ip];
-                TickResult::CanContinue
+                TickResult::Continue
             }
             opcodes::MOV2 => {
                 self.ip += 1;
                 self.r[2] = self.text_section[self.ip];
-                TickResult::CanContinue
+                TickResult::Continue
             }
             opcodes::MOV3 => {
                 self.ip += 1;
                 self.r[3] = self.text_section[self.ip];
-                TickResult::CanContinue
+                TickResult::Continue
             }
             opcodes::MOV4 => {
                 self.ip += 1;
                 self.r[4] = self.text_section[self.ip];
-                TickResult::CanContinue
+                TickResult::Continue
             }
             opcodes::MOV5 => {
                 self.ip += 1;
                 self.r[5] = self.text_section[self.ip];
-                TickResult::CanContinue
+                TickResult::Continue
             }
             opcodes::MOV6 => {
                 self.ip += 1;
                 self.r[6] = self.text_section[self.ip];
-                TickResult::CanContinue
+                TickResult::Continue
             }
             opcodes::MOV7 => {
                 self.ip += 1;
                 self.r[7] = self.text_section[self.ip];
-                TickResult::CanContinue
+                TickResult::Continue
             }
             // #endregion MOVs
             opcodes::SYSCALL => {
@@ -160,7 +176,7 @@ impl VM {
                     _ => return TickResult::Error(-2), // FIXME use enum to indicate UNKNOWN_SYSCALL (instead of hardcoded `-2`)
                 }
 
-                TickResult::CanContinue
+                TickResult::Continue
             }
             //
             _ => return TickResult::Error(1), // FIXME Instead 1 write UNKNOWN_OPCODE
